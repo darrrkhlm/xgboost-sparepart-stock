@@ -6,6 +6,7 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 from xgboost import XGBClassifier, plot_importance
 import matplotlib.pyplot as plt
 import seaborn as sns
+import xgboost as xgb
 
 # ----------------- CONFIG
 st.set_page_config(page_title="Prediksi Status Stok", layout="wide")
@@ -59,7 +60,6 @@ if uploaded_file:
         st.subheader("🧠 Pelatihan Model XGBoost")
 
         if 'model' not in st.session_state:
-            from xgboost import XGBClassifier
             X = df.drop(columns=['Status'])
             y = df['Status']
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2,
@@ -105,7 +105,7 @@ if uploaded_file:
         col3.metric("🎯 Akurasi Training", f"{acc_train:.2%}")
         col4.metric("📊 Akurasi Testing", f"{acc_test:.2%}")
 
-        with st.expander("📝 Classification Report"):
+        with st.expander("📜 Classification Report"):
             st.text(classification_report(y_test, y_test_pred))
 
         st.subheader("📌 Confusion Matrix")
@@ -150,14 +150,14 @@ if uploaded_file:
                 leadtime = st.number_input("Lead Time (Month)", step=0.1, format="%.2f")
             with col3:
                 movement_label = st.selectbox("Pola Pergerakan", ['Fast Moving', 'Slow Moving', 'Non Moving'])
-		abc_label = st.selectbox("Klasifikasi ABC", ['A', 'B', 'C'])
-
-		movement = {'Fast Moving': 0, 'Slow Moving': 1, 'Non Moving': 2}[movement_label]
-		abc = {'A': 0, 'B': 1, 'C': 2}[abc_label]
+                abc_label = st.selectbox("Klasifikasi ABC", ['A', 'B', 'C'])
 
             submitted = st.form_submit_button("🔎 Prediksi Status Stok")
 
             if submitted:
+                movement = {'Fast Moving': 0, 'Slow Moving': 1, 'Non Moving': 2}[movement_label]
+                abc = {'A': 0, 'B': 1, 'C': 2}[abc_label]
+
                 input_data = pd.DataFrame([{
                     'Demand': demand,
                     'Forecast': forecast,
