@@ -126,3 +126,39 @@ if uploaded_file:
         fig_fi, ax = plt.subplots(figsize=(10, 5))
         plot_importance(model, ax=ax)
         st.pyplot(fig_fi)
+
+        # ----------------- PREDIKSI MANUAL
+        st.subheader("🔍 Coba Prediksi Manual")
+        with st.form("manual_input"):
+            st.markdown("Masukkan nilai fitur untuk memprediksi status stok:")
+
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                demand = st.number_input("Demand (Penggunaan 2024)", min_value=0.0, step=1.0)
+                forecast = st.number_input("Forecast (2025)", min_value=0.0, step=1.0)
+                inventory = st.number_input("Inventory Level (SOH)", min_value=0.0, step=1.0)
+            with col2:
+                safety = st.number_input("Safety Stock", min_value=0.0, step=1.0)
+                leadtime = st.number_input("Lead Time (Month)", min_value=0.0, step=1.0)
+            with col3:
+                movement = st.selectbox("Pola Pergerakan", {'Fast Moving': 0, 'Slow Moving': 1, 'Non Moving': 2})
+                abc = st.selectbox("Klasifikasi ABC", {'A': 0, 'B': 1, 'C': 2})
+
+            submitted = st.form_submit_button("🔎 Prediksi Status Stok")
+
+            if submitted:
+                input_data = pd.DataFrame([{
+                    'Demand': demand,
+                    'Forecast': forecast,
+                    'Inventory Level': inventory,
+                    'Safety Stock': safety,
+                    'Lead Time': leadtime,
+                    'Pola Pergerakan': movement,
+                    'Klasifikasi ABC': abc
+                }])
+
+                prediction = model.predict(input_data)[0]
+                label_map = {0: 'Normal', 1: 'Understock', 2: 'Overstock'}
+                pred_label = label_map.get(prediction, 'Tidak Diketahui')
+
+                st.success(f"📦 Prediksi Status Stok: **{pred_label}**")
