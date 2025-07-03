@@ -136,14 +136,14 @@ if uploaded_file:
         st.pyplot(fig_fi)
 
         # ----------------- PREDIKSI MANUAL
-        st.subheader("🔍 Coba Prediksi Manual")
+        st.subheader("🔍 Lakukan Pengujian Prediksi")
         with st.form("manual_input"):
-            st.markdown("Masukkan nilai fitur untuk memprediksi status stok:")
+            st.markdown("Masukkan nilai fitur yang telah distandarisasi untuk memprediksi status stok:")
 
             col1, col2, col3 = st.columns(3)
             with col1:
                 demand = st.number_input("Demand (Penggunaan 2024)", step=0.1, format="%.2f")
-                forecast = st.number_input("Forecast (2025)", step=0.1, format="%.2f")
+                forecast = st.number_input("Forecast (2024)", step=0.1, format="%.2f")
                 inventory = st.number_input("Inventory Level (SOH)", step=0.1, format="%.2f")
             with col2:
                 safety = st.number_input("Safety Stock", step=0.1, format="%.2f")
