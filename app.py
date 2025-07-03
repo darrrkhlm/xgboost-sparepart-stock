@@ -41,7 +41,7 @@ if uploaded_file:
     df = df.drop(columns=['Lead Time (Month)', 'Kategori', 'Kelas'])
 
     df = df[['Demand', 'Forecast', 'Inventory Level', 'Safety Stock',
-             'Lead Time', 'Pola Pergerakan', 'Klasifikasi ABC', 'Status']]
+             'Lead Time', 'Pola Pergerakan', 'Pola Permintaan', 'Klasifikasi ABC', 'Status']]
 
     # ----------------- BUTTONS SECTION
     col1, col2 = st.columns(2)
@@ -105,7 +105,7 @@ if uploaded_file:
         col3.metric("🎯 Akurasi Training", f"{acc_train:.2%}")
         col4.metric("📊 Akurasi Testing", f"{acc_test:.2%}")
 
-        with st.expander("📜 Classification Report"):
+        with st.expander("📝 Classification Report"):
             st.text(classification_report(y_test, y_test_pred))
 
         st.subheader("📌 Confusion Matrix")
@@ -148,6 +148,7 @@ if uploaded_file:
             with col2:
                 safety = st.number_input("Safety Stock", step=0.1, format="%.2f")
                 leadtime = st.number_input("Lead Time (Month)", step=0.1, format="%.2f")
+                permintaan_label = st.selectbox("Pola Permintaan", ['Smooth', 'Erratic', 'Lumpy'])
             with col3:
                 movement_label = st.selectbox("Pola Pergerakan", ['Fast Moving', 'Slow Moving', 'Non Moving'])
                 abc_label = st.selectbox("Klasifikasi ABC", ['A', 'B', 'C'])
@@ -157,6 +158,7 @@ if uploaded_file:
             if submitted:
                 movement = {'Fast Moving': 0, 'Slow Moving': 1, 'Non Moving': 2}[movement_label]
                 abc = {'A': 0, 'B': 1, 'C': 2}[abc_label]
+                permintaan = {'Smooth': 0, 'Erratic': 1, 'Lumpy': 2}[permintaan_label]
 
                 input_data = pd.DataFrame([{
                     'Demand': demand,
@@ -165,6 +167,7 @@ if uploaded_file:
                     'Safety Stock': safety,
                     'Lead Time': leadtime,
                     'Pola Pergerakan': movement,
+                    'Pola Permintaan': permintaan,
                     'Klasifikasi ABC': abc
                 }])
 
