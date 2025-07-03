@@ -79,6 +79,9 @@ if uploaded_file:
         eval_set = [(X_train, y_train), (X_test, y_test)]
         model.fit(X_train, y_train, eval_set=eval_set, verbose=False)
 
+        # Simpan model ke session_state
+        st.session_state.model = model
+
         # ---- Evaluation Results
         y_train_pred = model.predict(X_train)
         y_test_pred = model.predict(X_test)
@@ -127,38 +130,39 @@ if uploaded_file:
         plot_importance(model, ax=ax)
         st.pyplot(fig_fi)
 
-        # ----------------- PREDIKSI MANUAL
-        st.subheader("🔍 Coba Prediksi Manual")
-        with st.form("manual_input"):
-            st.markdown("Masukkan nilai fitur untuk memprediksi status stok:")
+# ----------------- PREDIKSI MANUAL
+if 'model' in st.session_state:
+    st.subheader("🔍 Coba Prediksi Manual")
+    with st.form("manual_input"):
+        st.markdown("Masukkan nilai fitur untuk memprediksi status stok:")
 
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                demand = st.number_input("Demand (Penggunaan 2024)", min_value=0.0, step=1.0)
-                forecast = st.number_input("Forecast (2025)", min_value=0.0, step=1.0)
-                inventory = st.number_input("Inventory Level (SOH)", min_value=0.0, step=1.0)
-            with col2:
-                safety = st.number_input("Safety Stock", min_value=0.0, step=1.0)
-                leadtime = st.number_input("Lead Time (Month)", min_value=0.0, step=1.0)
-            with col3:
-                movement = st.selectbox("Pola Pergerakan", {'Fast Moving': 0, 'Slow Moving': 1, 'Non Moving': 2})
-                abc = st.selectbox("Klasifikasi ABC", {'A': 0, 'B': 1, 'C': 2})
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            demand = st.number_input("Demand (Penggunaan 2024)", min_value=0.0, step=1.0)
+            forecast = st.number_input("Forecast (2025)", min_value=0.0, step=1.0)
+            inventory = st.number_input("Inventory Level (SOH)", min_value=0.0, step=1.0)
+        with col2:
+            safety = st.number_input("Safety Stock", min_value=0.0, step=1.0)
+            leadtime = st.number_input("Lead Time (Month)", min_value=0.0, step=1.0)
+        with col3:
+            movement = st.selectbox("Pola Pergerakan", {'Fast Moving': 0, 'Slow Moving': 1, 'Non Moving': 2})
+            abc = st.selectbox("Klasifikasi ABC", {'A': 0, 'B': 1, 'C': 2})
 
-            submitted = st.form_submit_button("🔎 Prediksi Status Stok")
+        submitted = st.form_submit_button("🔎 Prediksi Status Stok")
 
-            if submitted:
-                input_data = pd.DataFrame([{
-                    'Demand': demand,
-                    'Forecast': forecast,
-                    'Inventory Level': inventory,
-                    'Safety Stock': safety,
-                    'Lead Time': leadtime,
-                    'Pola Pergerakan': movement,
-                    'Klasifikasi ABC': abc
-                }])
+        if submitted:
+            input_data = pd.DataFrame([{
+                'Demand': demand,
+                'Forecast': forecast,
+                'Inventory Level': inventory,
+                'Safety Stock': safety,
+                'Lead Time': leadtime,
+                'Pola Pergerakan': movement,
+                'Klasifikasi ABC': abc
+            }])
 
-                prediction = model.predict(input_data)[0]
-                label_map = {0: 'Normal', 1: 'Understock', 2: 'Overstock'}
-                pred_label = label_map.get(prediction, 'Tidak Diketahui')
+            prediction = st.session_state.model.predict(input_data)[0]
+            label_map = {0: 'Normal', 1: 'Understock', 2: 'Overstock'}
+            pred_label = label_map.get(prediction, 'Tidak Diketahui')
 
-                st.success(f"📦 Prediksi Status Stok: **{pred_label}**")
+            st.success(f"📦 Prediksi Status Stok: **{pred_label}**")
