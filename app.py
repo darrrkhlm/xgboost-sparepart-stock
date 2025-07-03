@@ -13,7 +13,7 @@ st.set_page_config(page_title="Prediksi Status Stok", layout="wide")
 
 # ----------------- HEADER
 st.markdown("""
-    <h1 style='text-align: center;'>📦 Prediksi Status Stok Barang (XGBoost)</h1>
+    <h1 style='text-align: center;'>📦 Prediksi Status Stok Suku Cadang (XGBoost)</h1>
     <p style='text-align: center; font-size: 18px;'>Upload data sparepart, analisis korelasi, dan latih model XGBoost untuk klasifikasi status stok</p>
 """, unsafe_allow_html=True)
 
