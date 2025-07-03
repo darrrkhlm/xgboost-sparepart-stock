@@ -149,8 +149,11 @@ if uploaded_file:
                 safety = st.number_input("Safety Stock", step=0.1, format="%.2f")
                 leadtime = st.number_input("Lead Time (Month)", step=0.1, format="%.2f")
             with col3:
-                movement = st.selectbox("Pola Pergerakan", {'Fast Moving': 0, 'Slow Moving': 1, 'Non Moving': 2})
-                abc = st.selectbox("Klasifikasi ABC", {'A': 0, 'B': 1, 'C': 2})
+                movement_label = st.selectbox("Pola Pergerakan", ['Fast Moving', 'Slow Moving', 'Non Moving'])
+		abc_label = st.selectbox("Klasifikasi ABC", ['A', 'B', 'C'])
+
+		movement = {'Fast Moving': 0, 'Slow Moving': 1, 'Non Moving': 2}[movement_label]
+		abc = {'A': 0, 'B': 1, 'C': 2}[abc_label]
 
             submitted = st.form_submit_button("🔎 Prediksi Status Stok")
 
