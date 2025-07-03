@@ -6,7 +6,6 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 from xgboost import XGBClassifier, plot_importance
 import matplotlib.pyplot as plt
 import seaborn as sns
-import xgboost as xgb
 
 # ----------------- CONFIG
 st.set_page_config(page_title="Prediksi Status Stok", layout="wide")
@@ -56,37 +55,48 @@ if uploaded_file:
         st.pyplot(fig_corr)
 
     # ----------------- MODELING
-    if run_model:
+    if run_model or 'model' in st.session_state:
         st.subheader("🧠 Pelatihan Model XGBoost")
-        X = df.drop(columns=['Status'])
-        y = df['Status']
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2,
-                                                            stratify=y, random_state=42)
 
-        xgb_params = dict(
-            objective='multi:softprob',
-            eval_metric=['mlogloss', 'merror'],
-            n_estimators=1000,
-            learning_rate=0.05,
-            max_depth=6,
-            subsample=0.5,
-            colsample_bytree=1,
-            reg_lambda=50.0,
-            reg_alpha=10.0,
-            random_state=42)
+        if 'model' not in st.session_state:
+            from xgboost import XGBClassifier
+            X = df.drop(columns=['Status'])
+            y = df['Status']
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2,
+                                                                stratify=y, random_state=42)
 
-        model = XGBClassifier(**xgb_params)
-        eval_set = [(X_train, y_train), (X_test, y_test)]
-        model.fit(X_train, y_train, eval_set=eval_set, verbose=False)
+            xgb_params = dict(
+                objective='multi:softprob',
+                eval_metric=['mlogloss', 'merror'],
+                n_estimators=1000,
+                learning_rate=0.05,
+                max_depth=6,
+                subsample=0.5,
+                colsample_bytree=1,
+                reg_lambda=50.0,
+                reg_alpha=10.0,
+                random_state=42)
 
-        # Simpan model ke session_state
-        st.session_state.model = model
+            model = XGBClassifier(**xgb_params)
+            eval_set = [(X_train, y_train), (X_test, y_test)]
+            model.fit(X_train, y_train, eval_set=eval_set, verbose=False)
 
-        # ---- Evaluation Results
+            st.session_state.model = model
+            st.session_state.X_train = X_train
+            st.session_state.X_test = X_test
+            st.session_state.y_train = y_train
+            st.session_state.y_test = y_test
+            st.session_state.results = model.evals_result()
+
+        model = st.session_state.model
+        X_train = st.session_state.X_train
+        X_test = st.session_state.X_test
+        y_train = st.session_state.y_train
+        y_test = st.session_state.y_test
+        results = st.session_state.results
+
         y_train_pred = model.predict(X_train)
         y_test_pred = model.predict(X_test)
-
-        st.success("✅ Model berhasil dilatih!")
 
         acc_train = accuracy_score(y_train, y_train_pred)
         acc_test = accuracy_score(y_test, y_test_pred)
@@ -95,11 +105,9 @@ if uploaded_file:
         col3.metric("🎯 Akurasi Training", f"{acc_train:.2%}")
         col4.metric("📊 Akurasi Testing", f"{acc_test:.2%}")
 
-        # ---- Classification Report
         with st.expander("📝 Classification Report"):
             st.text(classification_report(y_test, y_test_pred))
 
-        # ---- Confusion Matrix
         st.subheader("📌 Confusion Matrix")
         fig_cm, ax = plt.subplots()
         cm = confusion_matrix(y_test, y_test_pred)
@@ -110,9 +118,7 @@ if uploaded_file:
         ax.set_ylabel("Actual")
         st.pyplot(fig_cm)
 
-        # ---- Learning Curves
         st.subheader("📉 Learning Curve")
-        results = model.evals_result()
         fig_lc, ax = plt.subplots(1, 2, figsize=(12, 4))
         ax[0].plot(results['validation_0']['mlogloss'], label='Train')
         ax[0].plot(results['validation_1']['mlogloss'], label='Test')
@@ -124,45 +130,43 @@ if uploaded_file:
         ax[1].legend()
         st.pyplot(fig_lc)
 
-        # ---- Feature Importance
         st.subheader("📌 Feature Importance")
         fig_fi, ax = plt.subplots(figsize=(10, 5))
         plot_importance(model, ax=ax)
         st.pyplot(fig_fi)
 
-# ----------------- PREDIKSI MANUAL
-if 'model' in st.session_state:
-    st.subheader("🔍 Coba Prediksi Manual")
-    with st.form("manual_input"):
-        st.markdown("Masukkan nilai fitur untuk memprediksi status stok:")
+        # ----------------- PREDIKSI MANUAL
+        st.subheader("🔍 Coba Prediksi Manual")
+        with st.form("manual_input"):
+            st.markdown("Masukkan nilai fitur untuk memprediksi status stok:")
 
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            demand = st.number_input("Demand (Penggunaan 2024)", min_value=0.0, step=1.0)
-            forecast = st.number_input("Forecast (2025)", min_value=0.0, step=1.0)
-            inventory = st.number_input("Inventory Level (SOH)", min_value=0.0, step=1.0)
-        with col2:
-            safety = st.number_input("Safety Stock", min_value=0.0, step=1.0)
-            leadtime = st.number_input("Lead Time (Month)", min_value=0.0, step=1.0)
-        with col3:
-            movement = st.selectbox("Pola Pergerakan", {'Fast Moving': 0, 'Slow Moving': 1, 'Non Moving': 2})
-            abc = st.selectbox("Klasifikasi ABC", {'A': 0, 'B': 1, 'C': 2})
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                demand = st.number_input("Demand (Penggunaan 2024)", step=0.1, format="%.2f")
+                forecast = st.number_input("Forecast (2025)", step=0.1, format="%.2f")
+                inventory = st.number_input("Inventory Level (SOH)", step=0.1, format="%.2f")
+            with col2:
+                safety = st.number_input("Safety Stock", step=0.1, format="%.2f")
+                leadtime = st.number_input("Lead Time (Month)", step=0.1, format="%.2f")
+            with col3:
+                movement = st.selectbox("Pola Pergerakan", {'Fast Moving': 0, 'Slow Moving': 1, 'Non Moving': 2})
+                abc = st.selectbox("Klasifikasi ABC", {'A': 0, 'B': 1, 'C': 2})
 
-        submitted = st.form_submit_button("🔎 Prediksi Status Stok")
+            submitted = st.form_submit_button("🔎 Prediksi Status Stok")
 
-        if submitted:
-            input_data = pd.DataFrame([{
-                'Demand': demand,
-                'Forecast': forecast,
-                'Inventory Level': inventory,
-                'Safety Stock': safety,
-                'Lead Time': leadtime,
-                'Pola Pergerakan': movement,
-                'Klasifikasi ABC': abc
-            }])
+            if submitted:
+                input_data = pd.DataFrame([{
+                    'Demand': demand,
+                    'Forecast': forecast,
+                    'Inventory Level': inventory,
+                    'Safety Stock': safety,
+                    'Lead Time': leadtime,
+                    'Pola Pergerakan': movement,
+                    'Klasifikasi ABC': abc
+                }])
 
-            prediction = st.session_state.model.predict(input_data)[0]
-            label_map = {0: 'Normal', 1: 'Understock', 2: 'Overstock'}
-            pred_label = label_map.get(prediction, 'Tidak Diketahui')
+                prediction = model.predict(input_data)[0]
+                label_map = {0: 'Normal', 1: 'Understock', 2: 'Overstock'}
+                pred_label = label_map.get(prediction, 'Tidak Diketahui')
 
-            st.success(f"📦 Prediksi Status Stok: **{pred_label}**")
+                st.success(f"📦 Prediksi Status Stok: **{pred_label}**")
