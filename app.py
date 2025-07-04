@@ -52,7 +52,7 @@ if uploaded_file:
     if show_corr:
         st.subheader("📈 Korelasi Antar Fitur")
         fig_corr, ax = plt.subplots(figsize=(8, 6))
-        sns.heatmap(df.corr(numeric_only=True), annot=True, cmap="BrBG", ax=ax)
+        sns.heatmap(df.corr(), annot=True, cmap="BrBG", ax=ax)
         st.pyplot(fig_corr)
 
     # ----------------- MODELING
