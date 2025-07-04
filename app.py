@@ -21,19 +21,8 @@ st.markdown("""
 st.subheader("📤 Upload File CSV")
 uploaded_file = st.file_uploader("Pilih file dataset sparepart (.csv)", type=["csv"])
 
-model = None
-
 if uploaded_file:
-    # Read CSV dengan handling format ribuan
-    df = pd.read_csv(uploaded_file, sep=';', thousands='.')
-
-    # Bersihkan titik di angka (kalau masih ada)
-    df.replace(to_replace=r'\.', value='', regex=True, inplace=True)
-
-    # Coba konversi ke numeric bila bisa
-    for col in df.columns:
-        df[col] = pd.to_numeric(df[col], errors='ignore')
-
+    df = pd.read_csv(uploaded_file, sep=';')
     st.success("✅ File berhasil diupload!")
 
     # ----------------- PREVIEW DATA
@@ -42,7 +31,7 @@ if uploaded_file:
 
     # ----------------- DATA CLEANING & PREP
     df['Demand'] = df['Penggunaan Terakhir (2024)']
-    df['Forecast'] = df['Forecast (2024)']
+    df['Forecast'] = df['Forecast (2025)']
     df['Lead Time'] = df['Lead Time (Month)']
     df['Pola Pergerakan'] = df['MOVEMENT'].map({'Fast Moving': 0, 'Slow Moving': 1, 'Non Moving': 2})
     df['Pola Permintaan'] = df['Kategori'].map({'Smooth': 0, 'Erratic': 1, 'Lumpy': 2})
@@ -51,8 +40,8 @@ if uploaded_file:
     df['Inventory Level'] = df['SOH']
     df = df.drop(columns=['Lead Time (Month)', 'Kategori', 'Kelas'])
 
-    df = df[['Demand', 'Forecast', 'Inventory Level', 'Safety Stock', 'Lead Time',
-             'Pola Pergerakan', 'Pola Permintaan', 'Klasifikasi ABC', 'Status']]
+    df = df[['Demand', 'Forecast', 'Inventory Level', 'Safety Stock',
+             'Lead Time', 'Pola Pergerakan', 'Pola Permintaan', 'Klasifikasi ABC', 'Status']]
 
     # ----------------- BUTTONS SECTION
     col1, col2 = st.columns(2)
@@ -62,17 +51,13 @@ if uploaded_file:
     # ----------------- KORELASI
     if show_corr:
         st.subheader("📈 Korelasi Antar Fitur")
-        numeric_df = df.select_dtypes(include=[np.number])
-        if not numeric_df.empty:
-            fig_corr, ax = plt.subplots(figsize=(8, 6))
-            sns.heatmap(numeric_df.corr(), annot=True, cmap="BrBG", ax=ax)
-            st.pyplot(fig_corr)
-        else:
-            st.warning("Data numerik tidak ditemukan untuk korelasi.")
+        fig_corr, ax = plt.subplots(figsize=(8, 6))
+        sns.heatmap(df.corr(numeric_only=True), annot=True, cmap="BrBG", ax=ax)
+        st.pyplot(fig_corr)
 
     # ----------------- MODELING
     if run_model:
-        st.subheader("🧐 Pelatihan Model XGBoost")
+        st.subheader("🧠 Pelatihan Model XGBoost")
         X = df.drop(columns=['Status'])
         y = df['Status']
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2,
@@ -94,18 +79,24 @@ if uploaded_file:
         eval_set = [(X_train, y_train), (X_test, y_test)]
         model.fit(X_train, y_train, eval_set=eval_set, verbose=False)
 
+        # ---- Evaluation Results
         y_train_pred = model.predict(X_train)
         y_test_pred = model.predict(X_test)
 
         st.success("✅ Model berhasil dilatih!")
 
-        col3, col4 = st.columns(2)
-        col3.metric("🎯 Akurasi Training", f"{accuracy_score(y_train, y_train_pred):.2%}")
-        col4.metric("📊 Akurasi Testing", f"{accuracy_score(y_test, y_test_pred):.2%}")
+        acc_train = accuracy_score(y_train, y_train_pred)
+        acc_test = accuracy_score(y_test, y_test_pred)
 
+        col3, col4 = st.columns(2)
+        col3.metric("🎯 Akurasi Training", f"{acc_train:.2%}")
+        col4.metric("📊 Akurasi Testing", f"{acc_test:.2%}")
+
+        # ---- Classification Report
         with st.expander("📝 Classification Report"):
             st.text(classification_report(y_test, y_test_pred))
 
+        # ---- Confusion Matrix
         st.subheader("📌 Confusion Matrix")
         fig_cm, ax = plt.subplots()
         cm = confusion_matrix(y_test, y_test_pred)
@@ -116,6 +107,7 @@ if uploaded_file:
         ax.set_ylabel("Actual")
         st.pyplot(fig_cm)
 
+        # ---- Learning Curves
         st.subheader("📉 Learning Curve")
         results = model.evals_result()
         fig_lc, ax = plt.subplots(1, 2, figsize=(12, 4))
@@ -129,6 +121,7 @@ if uploaded_file:
         ax[1].legend()
         st.pyplot(fig_lc)
 
+        # ---- Feature Importance
         st.subheader("📌 Feature Importance")
         fig_fi, ax = plt.subplots(figsize=(10, 5))
         plot_importance(model, ax=ax)
@@ -136,21 +129,24 @@ if uploaded_file:
 
         # ----------------- PREDIKSI MANUAL
         st.subheader("🔍 Coba Prediksi Manual")
+
         with st.form("manual_input"):
+            st.markdown("Masukkan nilai fitur untuk memprediksi status stok:")
             col1, col2, col3 = st.columns(3)
             with col1:
-                demand = st.number_input("Demand (Penggunaan 2024)")
-                forecast = st.number_input("Forecast (2025)")
-                inventory = st.number_input("Inventory Level (SOH)")
+                demand = st.number_input("Demand (Penggunaan 2024)", value=0.0)
+                forecast = st.number_input("Forecast (2025)", value=0.0)
+                inventory = st.number_input("Inventory Level (SOH)", value=0.0)
             with col2:
-                safety = st.number_input("Safety Stock")
-                leadtime = st.number_input("Lead Time (Month)")
+                safety = st.number_input("Safety Stock", value=0.0)
+                leadtime = st.number_input("Lead Time (Month)", value=0.0)
             with col3:
                 movement = st.selectbox("Pola Pergerakan", {'Fast Moving': 0, 'Slow Moving': 1, 'Non Moving': 2})
-                pola_permintaan = st.selectbox("Pola Permintaan", {'Smooth': 0, 'Erratic': 1, 'Lumpy': 2})
+                demand_pattern = st.selectbox("Pola Permintaan", {'Smooth': 0, 'Erratic': 1, 'Lumpy': 2})
                 abc = st.selectbox("Klasifikasi ABC", {'A': 0, 'B': 1, 'C': 2})
 
             submitted = st.form_submit_button("🔎 Prediksi Status Stok")
+
             if submitted:
                 input_data = pd.DataFrame([{
                     'Demand': demand,
@@ -159,9 +155,13 @@ if uploaded_file:
                     'Safety Stock': safety,
                     'Lead Time': leadtime,
                     'Pola Pergerakan': movement,
-                    'Pola Permintaan': pola_permintaan,
+                    'Pola Permintaan': demand_pattern,
                     'Klasifikasi ABC': abc
                 }])
+
                 prediction = model.predict(input_data)[0]
                 label_map = {0: 'Normal', 1: 'Understock', 2: 'Overstock'}
-                st.success(f"📦 Prediksi Status Stok: **{label_map.get(prediction, 'Tidak Diketahui')}**")
+                pred_label = label_map.get(prediction, 'Tidak Diketahui')
+
+                st.success(f"📦 Prediksi Status Stok: **{pred_label}**")
+
