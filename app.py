@@ -31,7 +31,7 @@ if uploaded_file:
 
     # ----------------- DATA CLEANING & PREP
     df['Demand'] = df['Penggunaan Terakhir (2024)']
-    df['Forecast'] = df['Forecast (2025)']
+    df['Forecast'] = df['Forecast (2024)']
     df['Lead Time'] = df['Lead Time (Month)']
     df['Pola Pergerakan'] = df['MOVEMENT'].map({'Fast Moving': 0, 'Slow Moving': 1, 'Non Moving': 2})
     df['Pola Permintaan'] = df['Kategori'].map({'Smooth': 0, 'Erratic': 1, 'Lumpy': 2})
