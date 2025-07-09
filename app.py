@@ -13,7 +13,7 @@ st.set_page_config(page_title="Prediksi Status Stok", layout="wide")
 
 # ----------------- HEADER
 st.markdown("""
-    <h1 style='text-align: center;'>📦 Prediksi Status Stok Barang (XGBoost)</h1>
+    <h1 style='text-align: center;'>📦 Prediksi Status Stok Barang Material Suku Cadang</h1>
     <p style='text-align: center; font-size: 18px;'>Upload data sparepart, analisis korelasi, dan latih model XGBoost untuk klasifikasi status stok</p>
 """, unsafe_allow_html=True)
 
@@ -69,11 +69,11 @@ if uploaded_file:
                 objective='multi:softprob',
                 eval_metric=['mlogloss', 'merror'],
                 n_estimators=1000,
-                learning_rate=0.05,
+                learning_rate=0.1,
                 max_depth=6,
                 subsample=0.5,
                 colsample_bytree=1,
-                reg_lambda=50.0,
+                reg_lambda=10.0,
                 reg_alpha=10.0,
                 random_state=42)
 
